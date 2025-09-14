@@ -1,0 +1,636 @@
+ <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Smart India Waste Management — Upgraded</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #f0fdf4; color: #166534; }
+        .container-card { background-color: #fff; border-radius: 1.5rem; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05); padding: 2.5rem; margin: 2rem 0; }
+        .btn-primary { @apply bg-emerald-600 text-white font-semibold py-3 px-6 rounded-full transition-colors duration-300 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2; }
+        .icon { display:inline-block; width:1.5em; height:1.5em; vertical-align:middle; fill:currentColor; margin-right:0.5rem; }
+        #map-container, #vehicle-map-container { position: relative; min-height: 200px; background-color: #e2e8f0; border-radius: 1rem; overflow: hidden; }
+        .map-pin { position: absolute; width: 20px; height: 20px; border-radius: 50%; border: 2px solid white; transform: translate(-50%, -50%); animation: pulse 1.5s infinite; }
+        .pin-biomethanization { background-color: #f59e0b; }
+        .pin-wtoe { background-color: #ef4444; }
+        .pin-recycling { background-color: #3b82f6; }
+        .pin-scrap { background-color: #10b981; }
+        .vehicle-icon { position: absolute; font-size: 2rem; transform: translate(-50%, -50%); transition: all 1s linear; }
+        .product-card { @apply bg-gray-50 p-4 rounded-xl flex flex-col items-center text-center transition-transform transform hover:scale-105; }
+        .message-box { @apply fixed bottom-5 left-1/2 -translate-x-1/2 bg-green-500 text-white font-semibold py-3 px-6 rounded-full shadow-lg z-50 transition-opacity duration-300; }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.2); } 100% { transform: scale(1); } }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen p-4 sm:p-6 md:p-8">
+    <div class="max-w-5xl mx-auto">
+        <header class="relative mb-8 p-4 text-center">
+            <h1 class="text-4xl sm:text-5xl font-bold text-green-800 mb-2 leading-tight">Smart India Waste Management</h1>
+            <p class="text-lg text-gray-600 max-w-2xl mx-auto">Track, educate, and reward citizens — now with leaderboard, carbon calculator, polls, QR-tracked reports, and schedule.</p>
+        </header>
+
+        <main class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+            <!-- Daily Metrics + Facility counts -->
+            <section class="container-card md:col-span-2">
+                <h2 class="text-2xl font-bold text-green-700 mb-4 text-center">Daily Waste Metrics (India)</h2>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center mb-6">
+                    <div class="bg-blue-50 text-blue-700 p-4 rounded-xl">
+                        <div id="treated-waste-metric" class="text-3xl font-bold">...</div>
+                        <p class="text-sm">Treated Waste</p>
+                    </div>
+                    <div class="bg-red-50 text-red-700 p-4 rounded-xl">
+                        <div id="untreated-waste-metric" class="text-3xl font-bold">...</div>
+                        <p class="text-sm">Untreated Waste</p>
+                    </div>
+                    <div class="bg-gray-50 text-gray-700 p-4 rounded-xl">
+                        <div id="uncounted-waste-metric" class="text-3xl font-bold">...</div>
+                        <p class="text-sm">Uncounted Waste</p>
+                    </div>
+                </div>
+
+                <h3 class="text-xl font-bold text-green-700 mb-4 text-center">Solid Waste Processing Facilities</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
+                    <div class="bg-gray-50 text-gray-700 p-4 rounded-xl">
+                        <div class="text-3xl font-bold">249</div>
+                        <p class="text-sm">Waste-to-Energy Plants</p>
+                    </div>
+                    <div class="bg-gray-50 text-gray-700 p-4 rounded-xl">
+                        <div class="text-3xl font-bold">819</div>
+                        <p class="text-sm">Biomass Power Plants</p>
+                    </div>
+                    <div class="bg-gray-50 text-gray-700 p-4 rounded-xl">
+                        <div class="text-3xl font-bold">50.8 Lakhs</div>
+                        <p class="text-sm">Small Biogas Plants</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Citizen Training -->
+            <section class="container-card">
+                <h2 class="text-2xl font-bold text-green-700 mb-4">Citizen Training</h2>
+                <div id="training-content" class="text-gray-600 mb-4">Mandatory training to ensure every citizen is a responsible waste generator. Learn about source segregation, composting, and recycling.</div>
+                <div class="w-full bg-gray-200 rounded-full h-2.5 mb-4">
+                    <div id="training-progress" class="bg-emerald-600 h-2.5 rounded-full transition-all duration-500" style="width: 0%;"></div>
+                </div>
+                <button id="train-btn" class="btn-primary w-full" aria-label="Start Citizen Training">
+                    <svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.486 2 2 6.486 2 12s4.486 10 10 10 10-4.486 10-10S17.514 2 12 2zm-1 15v-4.5H8v-3h3V7h2v3.5h3v3h-3V17h-2z"/></svg>
+                    Start Training
+                </button>
+            </section>
+
+            <!-- Worker Training -->
+            <section class="container-card">
+                <h2 class="text-2xl font-bold text-green-700 mb-4">Worker Training</h2>
+                <div id="worker-training-content" class="text-gray-600 mb-4">Specialized training for waste management workers on safety protocols, handling hazardous materials, and operating machinery efficiently.</div>
+                <div class="w-full bg-gray-200 rounded-full h-2.5 mb-4">
+                    <div id="worker-training-progress" class="bg-emerald-600 h-2.5 rounded-full transition-all duration-500" style="width: 0%;"></div>
+                </div>
+                <button id="worker-train-btn" class="btn-primary w-full" aria-label="Start Worker Training">
+                    <svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.486 2 2 6.486 2 12s4.486 10 10 10 10-4.486 10-10S17.514 2 12 2zm-1 15v-4.5H8v-3h3V7h2v3.5h3v3h-3V17h-2z"/></svg>
+                    Start Training
+                </button>
+            </section>
+
+            <!-- Waste Utilities Store -->
+            <section class="container-card md:col-span-2">
+                <h2 class="text-2xl font-bold text-green-700 mb-4">Waste Utilities Store</h2>
+                <p class="text-gray-600 mb-4">Purchase essential tools like compost kits and segregated dustbins.</p>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+                    <div class="product-card">
+                        <span class="text-5xl mb-2">🗑️</span>
+                        <h3 class="font-bold text-lg text-gray-800">Dry Waste Bin</h3>
+                        <p class="text-sm text-gray-500 mb-4">For plastics, paper, metals, and glass.</p>
+                        <button class="btn-primary buy-btn" data-product="Dry Waste Bin">Add to Cart</button>
+                    </div>
+                    <div class="product-card">
+                        <span class="text-5xl mb-2">🍎</span>
+                        <h3 class="font-bold text-lg text-gray-800">Wet Waste Bin</h3>
+                        <p class="text-sm text-gray-500 mb-4">For kitchen waste and food scraps.</p>
+                        <button class="btn-primary buy-btn" data-product="Wet Waste Bin">Add to Cart</button>
+                    </div>
+                    <div class="product-card">
+                        <span class="text-5xl mb-2">🐛</span>
+                        <h3 class="font-bold text-lg text-gray-800">Compost Kit</h3>
+                        <p class="text-sm text-gray-500 mb-4">Everything you need to start composting at home.</p>
+                        <button class="btn-primary buy-btn" data-product="Compost Kit">Add to Cart</button>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-gray-600">Cart items: <span id="cart-count">0</span></p>
+                    </div>
+                    <div class="flex gap-2">
+                        <button id="clear-cart" class="btn-primary bg-red-500 hover:bg-red-600">Clear Cart</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Report a Dumping Site -->
+            <section class="container-card">
+                <h2 class="text-2xl font-bold text-green-700 mb-4">See Waste, Send Photo</h2>
+                <p class="text-gray-600 mb-4">Report illegal dumping sites with geo-tagged photos and get a QR to track resolution.</p>
+                <form id="report-form" class="space-y-4">
+                    <input id="report-image" type="file" accept="image/*" class="w-full text-gray-600 bg-gray-100 rounded-lg p-3" aria-label="Upload image">
+                    <textarea id="report-desc" class="w-full h-24 p-3 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500" placeholder="Add a description..."></textarea>
+                    <div id="location-info" class="text-sm text-gray-500 hidden"></div>
+                    <button type="submit" class="btn-primary w-full" aria-label="Submit Report">
+                        <svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M16.5 6a2.5 2.5 0 012.5 2.5v7.5a2.5 2.5 0 01-2.5 2.5h-9A2.5 2.5 0 015 16.5v-7.5A2.5 2.5 0 017.5 6H9V4a2 2 0 012-2h2a2 2 0 012 2v2h1.5zm0-2H13a.5.5 0 00-.5-.5h-1a.5.5 0 00-.5.5H7.5a.5.5 0 00-.5.5v1h10v-1a.5.5 0 00-.5-.5zM7 8.5v8a.5.5 0 00.5.5h9a.5.5 0 00.5-.5v-8A.5.5 0 0016.5 8H7.5a.5.5 0 00-.5.5zM12 10a2 2 0 100 4 2 2 0 000-4z"/></svg>
+                        Submit Report
+                    </button>
+                </form>
+                <div id="report-qr-area" class="mt-4 text-center"></div>
+            </section>
+
+            <!-- Facilities Map & Legend -->
+            <section class="container-card">
+                <h2 class="text-2xl font-bold text-green-700 mb-4">Facilities & Services Map</h2>
+                <p class="text-gray-600 mb-4">Locate different waste management facilities near you.</p>
+                <div id="map-container" class="relative"></div>
+                <div id="map-legend" class="mt-4 flex flex-wrap gap-4 text-sm font-medium">
+                    <div class="flex items-center gap-2">
+                        <span class="w-4 h-4 rounded-full bg-amber-500"></span>
+                        <span>Biomethanization</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="w-4 h-4 rounded-full bg-red-500"></span>
+                        <span>W-to-E Plant</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="w-4 h-4 rounded-full bg-blue-500"></span>
+                        <span>Recycling Center</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="w-4 h-4 rounded-full bg-green-500"></span>
+                        <span>Scrap Shop</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Live Vehicle Tracking -->
+            <section class="container-card">
+                <h2 class="text-2xl font-bold text-green-700 mb-4">Live Vehicle Tracking</h2>
+                <p class="text-gray-600 mb-4">Track the nearest waste collection vehicle and know its estimated time of arrival.</p>
+                <div id="vehicle-map-container" class="relative bg-gray-200">
+                    <div id="vehicle" class="vehicle-icon" style="top: 10%; left: 10%;">🚚</div>
+                </div>
+            </section>
+
+            <!-- Monitoring Dashboard -->
+            <section class="container-card">
+                <h2 class="text-2xl font-bold text-green-700 mb-4">Monitoring Dashboard</h2>
+                <p class="text-gray-600 mb-4">Real-time metrics for "Green Champions" to monitor progress and identify areas for improvement.</p>
+                <div class="grid grid-cols-2 gap-4 text-center">
+                    <div class="bg-emerald-50 text-emerald-700 p-4 rounded-xl">
+                        <div id="segregation-rate" class="text-3xl font-bold">0%</div>
+                        <p class="text-sm">Segregation Rate</p>
+                    </div>
+                    <div class="bg-emerald-50 text-emerald-700 p-4 rounded-xl">
+                        <div id="reports-filed" class="text-3xl font-bold">0</div>
+                        <p class="text-sm">Reports Filed</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Incentive Program -->
+            <section class="container-card">
+                <h2 class="text-2xl font-bold text-green-700 mb-4">Incentive Program</h2>
+                <p class="text-gray-600 mb-4">Earn reward points for your contributions to waste management. Points can be redeemed for various rewards!</p>
+                <div class="flex justify-between items-center mb-4 p-4 bg-lime-50 rounded-xl">
+                    <div class="text-center">
+                        <div id="reward-points" class="text-4xl font-bold text-lime-700">0</div>
+                        <p class="text-sm text-lime-600">Reward Points</p>
+                    </div>
+                    <button id="redeem-btn" class="btn-primary">
+                        <svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.486 2 2 6.486 2 12s4.486 10 10 10 10-4.486 10-10S17.514 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+                        Redeem Rewards
+                    </button>
+                </div>
+                <button id="earn-btn" class="btn-primary w-full mb-2">
+                    <svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.486 2 2 6.486 2 12s4.486 10 10 10 10-4.486 10-10S17.514 2 12 2zm-1 15v-4.5H8v-3h3V7h2v3.5h3v3h-3V17h-2z"/></svg>
+                    Earn 50 Points
+                </button>
+                <div class="text-sm text-gray-600">Tips: Earn points by reporting, completing training, and recycling correctly.</div>
+            </section>
+
+            <!-- New: Leaderboard -->
+            <section class="container-card">
+                <h2 class="text-2xl font-bold text-green-700 mb-4">Green Champions Leaderboard</h2>
+                <ul id="leaderboard" class="space-y-2 text-gray-700"></ul>
+                <div class="mt-4 flex gap-2">
+                    <input id="new-leader-name" placeholder="Name" class="p-2 border rounded-lg flex-1" />
+                    <input id="new-leader-pts" placeholder="Points" type="number" class="p-2 border rounded-lg w-28" />
+                    <button id="add-leader" class="btn-primary">Add</button>
+                </div>
+            </section>
+
+            <!-- New: Carbon Footprint Calculator -->
+            <section class="container-card">
+                <h2 class="text-2xl font-bold text-green-700 mb-4">Carbon Footprint Calculator</h2>
+                <p class="text-gray-600 mb-3">Enter your household waste (kg/day) to estimate CO₂ emissions.</p>
+                <input id="waste-input" type="number" min="0" placeholder="Waste in kg/day" class="w-full p-3 border rounded-lg mb-3" />
+                <button id="calc-btn" class="btn-primary w-full mb-3">Calculate</button>
+                <p id="carbon-result" class="mt-3 text-gray-700 font-semibold"></p>
+            </section>
+
+            <!-- New: Community Polls -->
+            <section class="container-card">
+                <h2 class="text-2xl font-bold text-green-700 mb-4">Community Poll</h2>
+                <p class="mb-2">Which waste reduction step is most important?</p>
+                <div class="space-y-2">
+                    <button class="poll-btn btn-primary w-full" data-option="Segregation">Segregation</button>
+                    <button class="poll-btn btn-primary w-full" data-option="Composting">Composting</button>
+                    <button class="poll-btn btn-primary w-full" data-option="Recycling">Recycling</button>
+                </div>
+                <div id="poll-result" class="mt-4 text-gray-700"></div>
+            </section>
+
+            <!-- New: Collection Schedule -->
+            <section class="container-card md:col-span-2">
+                <h2 class="text-2xl font-bold text-green-700 mb-4">Collection Schedule</h2>
+                <ul class="list-disc pl-5 text-gray-700">
+                    <li>Monday – Ward 1 & 2</li>
+                    <li>Tuesday – Ward 3 & 4</li>
+                    <li>Wednesday – Ward 5 & 6</li>
+                    <li>Thursday – Ward 7 & 8</li>
+                    <li>Friday – Ward 9 & 10</li>
+                    <li>Saturday – Special bulk collection on request</li>
+                </ul>
+            </section>
+
+        </main>
+    </div>
+
+    <script>
+        // ---- Local Storage keys ----
+        const LS = {
+            rewardPoints: 'siwm_rewardPoints',
+            trainingStep: 'siwm_trainingStep',
+            workerStep: 'siwm_workerStep',
+            reportsFiled: 'siwm_reportsFiled',
+            leaderboard: 'siwm_leaderboard',
+            pollVotes: 'siwm_pollVotes',
+            cart: 'siwm_cart'
+        };
+
+        // ---- Elements ----
+        const trainBtn = document.getElementById('train-btn');
+        const trainingContent = document.getElementById('training-content');
+        const trainingProgress = document.getElementById('training-progress');
+        const workerTrainBtn = document.getElementById('worker-train-btn');
+        const workerTrainingContent = document.getElementById('worker-training-content');
+        const workerTrainingProgress = document.getElementById('worker-training-progress');
+        const reportForm = document.getElementById('report-form');
+        const locationInfo = document.getElementById('location-info');
+        const segregationRate = document.getElementById('segregation-rate');
+        const reportsFiledEl = document.getElementById('reports-filed');
+        const mapContainer = document.getElementById('map-container');
+        const vehicle = document.getElementById('vehicle');
+        const buyBtns = document.querySelectorAll('.buy-btn');
+        const treatedWasteMetric = document.getElementById('treated-waste-metric');
+        const untreatedWasteMetric = document.getElementById('untreated-waste-metric');
+        const uncountedWasteMetric = document.getElementById('uncounted-waste-metric');
+        const rewardPointsElement = document.getElementById('reward-points');
+        const earnPointsBtn = document.getElementById('earn-btn');
+        const redeemRewardsBtn = document.getElementById('redeem-btn');
+        const cartCount = document.getElementById('cart-count');
+        const clearCartBtn = document.getElementById('clear-cart');
+        const leaderboardEl = document.getElementById('leaderboard');
+        const addLeaderBtn = document.getElementById('add-leader');
+        const newLeaderName = document.getElementById('new-leader-name');
+        const newLeaderPts = document.getElementById('new-leader-pts');
+        const wasteInput = document.getElementById('waste-input');
+        const calcBtn = document.getElementById('calc-btn');
+        const carbonResult = document.getElementById('carbon-result');
+        const pollResult = document.getElementById('poll-result');
+        const pollBtns = document.querySelectorAll('.poll-btn');
+        const reportQRArea = document.getElementById('report-qr-area');
+
+        // ---- Default simulated daily waste metrics ----
+        const treated = 54, untreated = 24, uncounted = 22;
+        treatedWasteMetric.textContent = `${treated}%`;
+        untreatedWasteMetric.textContent = `${untreated}%`;
+        uncountedWasteMetric.textContent = `${uncounted}%`;
+
+        // ---- Training steps ----
+        const trainingSteps = [
+            { title: 'Step 1: Introduction', content: 'Understand the three types of waste: dry, wet, and domestic hazardous. Correct segregation is the first and most important step.' },
+            { title: 'Step 2: Composting', content: 'Learn how to make compost at home using a simple kit. Turn your wet waste into valuable fertilizer for your garden.' },
+            { title: 'Step 3: Recycling & Re-use', content: 'Discover how to re-use plastics and other materials. Find out what materials can be recycled and how to prepare them for collection.' },
+            { title: 'Step 4: Final Quiz', content: 'Test your knowledge to complete the training. A passing score will certify you as a responsible Waste Generator.' }
+        ];
+        const workerTrainingSteps = [
+            { title: 'Step 1: Safety & Handling', content: 'Learn essential safety protocols for handling different waste types, including hazardous materials, to prevent injury and contamination.' },
+            { title: 'Step 2: Machinery Operation', content: 'Get hands-on training for operating waste collection and sorting machinery, ensuring efficiency and minimizing downtime.' },
+            { title: 'Step 3: Route Optimization', content: 'Use the live vehicle tracking system to plan and optimize collection routes for better fuel efficiency and faster service.' },
+            { title: 'Step 4: Advanced Recycling', content: 'Learn about advanced sorting and processing techniques to maximize the amount of recyclable materials recovered.' }
+        ];
+
+        // ---- Utility: get / set local storage with JSON parse fallback ----
+        function lsGet(key, fallback) {
+            try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; }
+            catch (e) { return fallback; }
+        }
+        function lsSet(key, value) {
+            try { localStorage.setItem(key, JSON.stringify(value)); }
+            catch (e) { console.warn('ls set failed', e); }
+        }
+
+        // ---- Initialize persistent state ----
+        let rewardPoints = lsGet(LS.rewardPoints, 0);
+        let trainingStepIndex = lsGet(LS.trainingStep, 0);
+        let workerStepIndex = lsGet(LS.workerStep, 0);
+        let reportsFiled = lsGet(LS.reportsFiled, 0);
+        let leaderboard = lsGet(LS.leaderboard, [
+            { name: 'Rahul', pts: 450 },
+            { name: 'Ananya', pts: 380 },
+            { name: 'Vikram', pts: 310 }
+        ]);
+        let pollVotes = lsGet(LS.pollVotes, { Segregation: 0, Composting: 0, Recycling: 0 });
+        let cart = lsGet(LS.cart, []);
+
+        // ---- Render functions ----
+        function renderRewardPoints() {
+            rewardPointsElement.textContent = rewardPoints;
+            lsSet(LS.rewardPoints, rewardPoints);
+        }
+        function renderTrainingProgress() {
+            const percent = Math.round((trainingStepIndex / trainingSteps.length) * 100);
+            trainingProgress.style.width = `${percent}%`;
+            if (trainingStepIndex === 0) {
+                trainingContent.textContent = 'Mandatory training to ensure every citizen is a responsible waste generator. Learn about source segregation, composting, and recycling.';
+            } else if (trainingStepIndex >= trainingSteps.length) {
+                trainingContent.innerHTML = `<h3 class="text-lg font-bold">Training Complete!</h3><p>You are now a certified Waste Generator. Keep our country clean!</p>`;
+                trainBtn.disabled = true;
+                trainBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            } else {
+                const s = trainingSteps[trainingStepIndex-1] || trainingSteps[trainingStepIndex];
+                trainingContent.innerHTML = `<h3 class="text-lg font-bold">${s.title}</h3><p>${s.content}</p>`;
+            }
+            lsSet(LS.trainingStep, trainingStepIndex);
+        }
+        function renderWorkerTrainingProgress() {
+            const percent = Math.round((workerStepIndex / workerTrainingSteps.length) * 100);
+            workerTrainingProgress.style.width = `${percent}%`;
+            if (workerStepIndex === 0) {
+                workerTrainingContent.textContent = 'Specialized training for waste management workers on safety protocols, handling hazardous materials, and operating machinery efficiently.';
+            } else if (workerStepIndex >= workerTrainingSteps.length) {
+                workerTrainingContent.innerHTML = `<h3 class="text-lg font-bold">Training Complete!</h3><p>You are now a certified Waste Management Worker. Thank you!</p>`;
+                workerTrainBtn.disabled = true;
+                workerTrainBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            } else {
+                const s = workerTrainingSteps[workerStepIndex-1] || workerTrainingSteps[workerStepIndex];
+                workerTrainingContent.innerHTML = `<h3 class="text-lg font-bold">${s.title}</h3><p>${s.content}</p>`;
+            }
+            lsSet(LS.workerStep, workerStepIndex);
+        }
+        function renderReportsFiled() {
+            reportsFiledEl.textContent = reportsFiled;
+            lsSet(LS.reportsFiled, reportsFiled);
+        }
+        function renderCart() {
+            cartCount.textContent = cart.length;
+            lsSet(LS.cart, cart);
+        }
+        function renderLeaderboard() {
+            // sort descending by pts
+            leaderboard.sort((a,b)=>b.pts - a.pts);
+            lsSet(LS.leaderboard, leaderboard);
+            leaderboardEl.innerHTML = leaderboard.map(entry => {
+                return `<li class="flex justify-between bg-gray-50 p-3 rounded-lg"><span>${entry.name}</span><span>${entry.pts} pts</span></li>`;
+            }).join('');
+        }
+        function renderPollResult() {
+            const total = pollVotes.Segregation + pollVotes.Composting + pollVotes.Recycling;
+            if (total === 0) {
+                pollResult.textContent = 'No votes yet — be the first to vote!';
+            } else {
+                pollResult.innerHTML = `
+                    <div class="text-sm">Votes: ${total}</div>
+                    <div class="mt-2 space-y-1">
+                        <div>Segregation: ${pollVotes.Segregation}</div>
+                        <div>Composting: ${pollVotes.Composting}</div>
+                        <div>Recycling: ${pollVotes.Recycling}</div>
+                    </div>
+                `;
+            }
+            lsSet(LS.pollVotes, pollVotes);
+        }
+
+        // ---- Initial render on page load ----
+        renderRewardPoints();
+        renderTrainingProgress();
+        renderWorkerTrainingProgress();
+        renderReportsFiled();
+        renderCart();
+        renderLeaderboard();
+        renderPollResult();
+
+        // ---- Training button handlers ----
+        trainBtn.addEventListener('click', () => {
+            if (trainingStepIndex < trainingSteps.length) {
+                trainingStepIndex++;
+                // small reward for completing a step
+                rewardPoints += 10;
+                renderRewardPoints();
+                renderTrainingProgress();
+            }
+        });
+        workerTrainBtn.addEventListener('click', () => {
+            if (workerStepIndex < workerTrainingSteps.length) {
+                workerStepIndex++;
+                rewardPoints += 15;
+                renderRewardPoints();
+                renderWorkerTrainingProgress();
+            }
+        });
+
+        // ---- Report form (with QR) ----
+        reportForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+
+            // location attempt
+            if ("geolocation" in navigator) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const lat = position.coords.latitude;
+                        const lon = position.coords.longitude;
+                        locationInfo.innerHTML = `Location: <span class="font-bold">${lat.toFixed(4)}, ${lon.toFixed(4)}</span>`;
+                        locationInfo.classList.remove('hidden');
+                    },
+                    (error) => {
+                        locationInfo.textContent = `Location access denied. Please enable it for geo-tagging.`;
+                        locationInfo.classList.remove('hidden');
+                    }
+                );
+            } else {
+                locationInfo.textContent = "Geolocation is not supported by your browser.";
+                locationInfo.classList.remove('hidden');
+            }
+
+            // increment reports count and reward
+            reportsFiled++;
+            rewardPoints += 20;
+            renderReportsFiled();
+            renderRewardPoints();
+
+            // create QR code to track this report
+            const reportId = `DumpReport-${Date.now()}`;
+            const qrUrl = `https://quickchart.io/qr?text=${encodeURIComponent(reportId)}&size=200`;
+            reportQRArea.innerHTML = `
+                <div class="bg-white p-4 rounded-xl inline-block shadow-md">
+                    <div class="font-semibold mb-2">Report Submitted</div>
+                    <img src="${qrUrl}" alt="Report QR" class="mx-auto w-40 h-40" />
+                    <div class="text-sm mt-2 text-gray-600">Scan to view report ID: <span class="font-mono">${reportId}</span></div>
+                </div>
+            `;
+
+            // store to leaderboard as a small contribution for demo
+            leaderboard.push({ name: 'You (report)', pts: 5 });
+            renderLeaderboard();
+
+            // reset form fields
+            reportForm.querySelector('input[type="file"]').value = '';
+            reportForm.querySelector('textarea').value = '';
+
+            // small UI message
+            showTempMessage('Report Submitted Successfully!');
+        });
+
+        // ---- Animate some dashboard metrics ----
+        function animateValue(obj, start, end, duration) {
+            let startTimestamp = null;
+            const step = (timestamp) => {
+                if (!startTimestamp) startTimestamp = timestamp;
+                const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                obj.textContent = Math.floor(progress * (end - start) + start) + (obj.id === 'segregation-rate' ? '%' : '');
+                if (progress < 1) requestAnimationFrame(step);
+            };
+            requestAnimationFrame(step);
+        }
+        animateValue(segregationRate, 0, 75, 2000);
+        animateValue(reportsFiledEl, 0, reportsFiled, 1000);
+
+        // ---- Facilities on map (simulated pins) ----
+        const facilities = [
+            { type: 'biomethanization', x: '20%', y: '40%' },
+            { type: 'wtoe', x: '60%', y: '70%' },
+            { type: 'recycling', x: '80%', y: '25%' },
+            { type: 'scrap', x: '45%', y: '55%' },
+            { type: 'recycling', x: '15%', y: '80%' }
+        ];
+        facilities.forEach(f => {
+            const pin = document.createElement('div');
+            pin.className = `map-pin pin-${f.type}`;
+            pin.style.left = f.x;
+            pin.style.top = f.y;
+            pin.title = f.type;
+            mapContainer.appendChild(pin);
+        });
+
+        // ---- Live vehicle movement ----
+        let vehicleX = 10, vehicleY = 10, dirX = 1, dirY = 1;
+        setInterval(() => {
+            const containerWidth = vehicle.parentElement.offsetWidth; // not used directly since % used
+            vehicleX += dirX * 2;
+            vehicleY += dirY * 2;
+            if (vehicleX > 90 || vehicleX < 10) dirX *= -1;
+            if (vehicleY > 90 || vehicleY < 10) dirY *= -1;
+            vehicle.style.left = `${vehicleX}%`;
+            vehicle.style.top = `${vehicleY}%`;
+        }, 1000);
+
+        // ---- Cart handlers ----
+        buyBtns.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const productName = e.currentTarget.dataset.product;
+                cart.push({ product: productName, addedAt: Date.now() });
+                renderCart();
+                showTempMessage(`${productName} added to cart!`);
+            });
+        });
+        clearCartBtn.addEventListener('click', () => {
+            cart = [];
+            renderCart();
+            showTempMessage('Cart cleared');
+        });
+
+        // ---- Incentive program buttons ----
+        earnPointsBtn.addEventListener('click', () => {
+            rewardPoints += 50;
+            renderRewardPoints();
+            showTempMessage('+50 points earned!');
+        });
+        redeemRewardsBtn.addEventListener('click', () => {
+            if (rewardPoints >= 100) {
+                rewardPoints -= 100;
+                renderRewardPoints();
+                showTempMessage('Rewards Redeemed Successfully!');
+            } else {
+                showTempMessage(`Need at least 100 points to redeem. You have ${rewardPoints}.`, true);
+            }
+        });
+
+        // ---- Leaderboard add ----
+        addLeaderBtn.addEventListener('click', () => {
+            const name = (newLeaderName.value || 'Anonymous').trim();
+            const pts = parseInt(newLeaderPts.value, 10) || 0;
+            leaderboard.push({ name, pts });
+            newLeaderName.value = '';
+            newLeaderPts.value = '';
+            renderLeaderboard();
+            showTempMessage('Leaderboard updated!');
+        });
+
+        // ---- Carbon calculator ----
+        calcBtn.addEventListener('click', () => {
+            const waste = parseFloat(wasteInput.value);
+            if (!isNaN(waste) && waste >= 0) {
+                // assume 0.45 kg CO2 per kg of unmanaged waste (simple heuristic)
+                const carbon = (waste * 0.45).toFixed(2);
+                carbonResult.textContent = `Your daily carbon footprint estimate: ${carbon} kg CO₂`;
+            } else {
+                carbonResult.textContent = 'Please enter a valid waste amount (kg/day).';
+            }
+        });
+
+        // ---- Polls ----
+        pollBtns.forEach(b => {
+            b.addEventListener('click', (e) => {
+                const choice = e.currentTarget.dataset.option;
+                pollVotes[choice] = (pollVotes[choice] || 0) + 1;
+                lsSet(LS.pollVotes, pollVotes);
+                renderPollResult();
+                showTempMessage(`Thanks for voting: ${choice}`);
+            });
+        });
+
+        // ---- Utils: show temporary message ----
+        function showTempMessage(text, isError = false) {
+            const message = document.createElement('div');
+            message.className = `fixed bottom-5 left-1/2 -translate-x-1/2 text-white font-semibold py-3 px-6 rounded-full shadow-lg z-50 transition-opacity duration-300 ${isError ? 'bg-red-500' : 'bg-green-500'}`;
+            message.textContent = text;
+            document.body.appendChild(message);
+            setTimeout(() => message.classList.add('opacity-0'), 1600);
+            setTimeout(() => message.remove(), 2000);
+        }
+
+        // ---- Update some UI elements after load ----
+        renderLeaderboard();
+        renderPollResult();
+
+        // ---- When saving leaderboard or rewardPoints elsewhere, ensure persistence ----
+        window.addEventListener('beforeunload', () => {
+            lsSet(LS.rewardPoints, rewardPoints);
+            lsSet(LS.trainingStep, trainingStepIndex);
+            lsSet(LS.workerStep, workerStepIndex);
+            lsSet(LS.reportsFiled, reportsFiled);
+            lsSet(LS.leaderboard, leaderboard);
+            lsSet(LS.pollVotes, pollVotes);
+            lsSet(LS.cart, cart);
+        });
+    </script>
+</body>
+</html>
